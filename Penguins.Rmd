@@ -53,4 +53,123 @@ chinstraps %>%
   )
   
 ```
+Get vectors of body mass 4 female ans male chinstrap penguins sep.
+
+
+```{r}
+chinstraps_f<- chinstraps %>% 
+  filter(sex== "female") %>% 
+  pull(body_mass_g)
+
+chinstraps_m<- chinstraps %>% 
+  filter(sex== "male") %>% 
+  pull(body_mass_g)
+
+
+```
+
+## T-tests, a couple of different ways
+
+1. is there a sig. difference in body mass between male and female chinstrap penguins
+```{r}
+chinstrap_ttest<- t.test(chinstraps_f, chinstraps_m)
+chinstrap_ttest
+
+
+cohens_d(chinstraps_f, chinstraps_m)
+```
+
+Are male penguins sig. larger than females (1 sided)
+
+```{r}
+t.test(chinstraps_m, chinstraps_f, alternative = "greater")
+```
+## One way ANOVA
+
+- single varialbe that has discrete grouos within it
+another contineud mesaured variable
+- extrension of the 2 sided t test
+## 1. Table of counts by species and sex
+
+```{r}
+penguins_counts <- penguins %>% 
+  count(species, sex)
+
+penguins_counts
+```
+
+
+Create a subset of only females
+
+```{r}
+female_chinstraps<- penguins %>% 
+  filter(sex== "female")
+
+ggplot(data = female_chinstraps, aes (x= flipper_length_mm ))+
+geom_histogram(aes(fill= species))+
+  facet_wrap(~species, scales = "free")
+  
+
+ggplot(data = female_chinstraps, aes (sample= flipper_length_mm ))+
+geom_qq(aes(color= species))+
+  facet_wrap(~species, scales = "free")
+```
+## summary stats
+cehck for equal vairances
+
+```{r}
+penguin_f_summary <- female_chinstraps %>% 
+  group_by(species) %>% 
+  summarize(
+    mean_flipper_length= mean(flipper_length_mm),
+    sd_flipper_length= sd(flipper_length_mm),
+    sample_size= n(),
+    se_flipper_length = sd(flipper_length_mm)/ sqrt(n()),
+    var_flipper_length= var(flipper_length_mm)
+  )
+
+
+
+leveneTest(flipper_length_mm~species, data= female_chinstraps)
+```
+
+### Beeswarm Plot
+with mean and +- 1sd
+
+```{r}
+ggplot()+ geom_beeswarm(data= female_chinstraps,
+                        aes(x= species,y= flipper_length_mm),
+color= "gray70",
+size= 3,
+alpha= 0.5)+
+geom_point(data = penguin_f_summary, 
+           aes(x= species,y= mean_flipper_length),
+           size= 4)+
+  geom_errorbar(data = penguin_f_summary,
+                aes(x= species, ymax=  mean_flipper_length + sd_flipper_length ,
+                 ymin= mean_flipper_length - sd_flipper_length),
+width= 0.3) +
+  theme_light()
+
+```
+
+## 1 way ANOVA
+
+
+```{r}
+penguin_aov<- aov(flipper_length_mm~ species, data= female_chinstraps)
+summary(penguin_aov)
+
+
+## Post Hoc Test
+
+TukeyHSD(penguin_aov)
+```
+If very unbalanced design used type 3 ANOVA with car package (create a linear model)
+```{r}
+penguin_lm <- lm(flipper_length_mm~ species, data= female_chinstraps) 
+penguin_aov_t3 <- Anova(penguin_lm, type= "III")
+penguin_aov_t3
+```
+
 
